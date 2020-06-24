@@ -24,10 +24,25 @@ function getAndremoveRecipients() {
         } else {
             console.info('Removing recipients!');
             const recipients = asyncResult.value;
-            removeRecipients(recipients, () => {
-                console.info('Recipients removed!');
-                sendEvent.completed({ allowEvent: false });
-            });
+            // removeRecipients(recipients, () => {
+            //     console.info('Recipients removed!');
+            //     sendEvent.completed({ allowEvent: false });
+            // });
+
+            removeOneRecipient(recipients);
+        }
+    });
+}
+
+function removeOneRecipient(recipients:Office.EmailAddressDetails[]) {
+    const recipient = recipients[0];
+    const filtered = recipients.filter(x => x.emailAddress !== recipient.emailAddress);
+    Office.context.mailbox.item.to.setAsync(filtered, (asyncResult:Office.AsyncResult<void>) => {
+        if (asyncResult.error) {
+            console.error(asyncResult.error);
+        } else {
+            console.info('Recipient removed!');
+            sendEvent.completed({ allowEvent: false });
         }
     });
 }
