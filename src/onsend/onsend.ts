@@ -16,9 +16,6 @@ function processOnSendEvent(event: Office.AddinCommands.Event) {
             // getAndremoveRecipients();
             await setInternetHeaders(); 
 
-            // This will not add the header
-            //await saveMessage();
-
             // This will add the header
             await patchBody();      
 
@@ -28,19 +25,6 @@ function processOnSendEvent(event: Office.AddinCommands.Event) {
             sendEvent.completed({ allowEvent: false });
         }
     }, 5000);
-}
-
-function saveMessage(): Promise<string> {
-    return new Promise((resolve, reject) => {
-        Office.context.mailbox.item.saveAsync((asyncResult: Office.AsyncResult<string>) => {
-            if(asyncResult.status === Office.AsyncResultStatus.Failed) {
-                console.error("Saving message failed.", asyncResult.error);
-                reject(asyncResult.error);
-            } else {
-                resolve(asyncResult.value);
-            }
-        });
-    });
 }
 
 function patchBody(): Promise<void> {
