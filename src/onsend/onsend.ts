@@ -1,5 +1,5 @@
 import getGlobal from '../getGlobal';
-/* global , Office, console, setTimeout */
+/* global , Office, console, setTimeout, Promise */
 
 Office.onReady(() => {
     // If needed, Office.js is ready to be called
@@ -11,36 +11,67 @@ function processOnSendEvent(event: Office.AddinCommands.Event) {
     console.info('Pausing send event...');
     sendEvent = event;
 
-    setTimeout(() => {
-        // getAndremoveRecipients();
-        setInternetHeaders();
+    setTimeout(async () => {
+        try {
+            // getAndremoveRecipients();
+            await setInternetHeaders(); 
+
+            // This will not add the header
+            //await saveMessage();
+
+            // This will add the header
+            await patchBody();      
+
+            sendEvent.completed({ allowEvent: true });
+        } catch (err) {
+            console.error(err);
+            sendEvent.completed({ allowEvent: false });
+        }
     }, 5000);
 }
 
-function setInternetHeaders() {
-    Office.context.mailbox.item.internetHeaders.setAsync({
-        "x-onsend-header": "bar"
-      }, (asyncResult: Office.AsyncResult<void>) => {
-          if(asyncResult.status === Office.AsyncResultStatus.Failed) {
-            console.error("Failed setting internet message header through taskpane.", asyncResult.error);
-            sendEvent.completed({ allowEvent: false });
-          } else {
-            console.info("Successfully set internet message header through taskpane.");
-            // Allowing send event here does not persist the header
-            // sendEvent.completed({ allowEvent: true });
+function saveMessage(): Promise<string> {
+    return new Promise((resolve, reject) => {
+        Office.context.mailbox.item.saveAsync((asyncResult: Office.AsyncResult<string>) => {
+            if(asyncResult.status === Office.AsyncResultStatus.Failed) {
+                console.error("Saving message failed.", asyncResult.error);
+                reject(asyncResult.error);
+            } else {
+                resolve(asyncResult.value);
+            }
+        });
+    });
+}
 
-            // See if saving the message works after setting the header
-            Office.context.mailbox.item.saveAsync((asyncResult: Office.AsyncResult<string>) => {
-                if(asyncResult.status === Office.AsyncResultStatus.Failed) {
-                    console.error("Failed saving message item.", asyncResult.error);
-                    sendEvent.completed({ allowEvent: false });
-                } else {
-                    console.info("Message item successfully saved.");
-                    sendEvent.completed({ allowEvent: true });
-                }
-            });
-          }
-      });
+function patchBody(): Promise<void> {
+    return new Promise((resolve, reject) => {
+        Office.context.mailbox.item.body.prependAsync("", {
+            coercionType: Office.CoercionType.Text
+        }, (asyncResult: Office.AsyncResult<void>) => {
+            if(asyncResult.status === Office.AsyncResultStatus.Failed) {
+                console.error("Failed prepending message body.", asyncResult.error);
+                reject(asyncResult.error);
+            } else {
+                resolve();
+            }
+        });
+    });
+}
+
+function setInternetHeaders(): Promise<void> {
+    return new Promise((resolve, reject) => {
+        Office.context.mailbox.item.internetHeaders.setAsync({
+            "x-onsend-header": "bar"
+          }, (asyncResult: Office.AsyncResult<void>) => {
+              if(asyncResult.status === Office.AsyncResultStatus.Failed) {
+                console.error("Failed setting internet message header through onsend function file.", asyncResult.error);
+                reject(asyncResult.error);
+              } else {
+                console.info("Successfully set internet message header through onsend function file.");
+                resolve();
+              }
+          });
+    });
 }
 
 // function getAndremoveRecipients() {
